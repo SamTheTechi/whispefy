@@ -1,0 +1,26 @@
+[project]
+name = "whispefy-desktop"
+version = "0.1.0"
+description = "Desktop voice dictation for Hyprland with Groq transcription and LangChain cleanup"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "langchain-core>=0.3.0",
+    "langchain-groq>=0.3.0",
+    "numpy>=2.0.0",
+    "fastapi>=0.115.0",
+    "httpx>=0.27.0",
+    "python-dotenv>=1.0.0",
+    "sounddevice>=0.5.0",
+    "uvicorn>=0.32.0",
+]
+
+[project.scripts]
+whispefy = "whispefy.app:main"
+
+[build-system]
+requires = ["hatchling>=1.24.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["whispefy"]

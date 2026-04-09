@@ -1,0 +1,2 @@
+"""Whispefy desktop dictation app."""
+
