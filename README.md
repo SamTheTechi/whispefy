@@ -1,8 +1,7 @@
 # Whispefy
 
 Whispefy is a small Linux voice-dictation app for Hyprland.
-
-It works like a local Whisperflow-style flow:
+It works like a Whisperflow-style flow:
 
 1. Trigger recording from a hotkey or localhost endpoint.
 2. Stop automatically on silence.
@@ -24,31 +23,40 @@ It works like a local Whisperflow-style flow:
 ## Install
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/SamTheTechi/whispefy.git
 cd whispefy
 uv sync
-cp .env.example .env
+cp example.env .env
 ```
 
 Edit `.env` and set `GROQ_API_KEY`.
 
-## Run
+### Quick Run
 
 ```bash
 uv run whispefy
 ```
 
-## Hyprland Launch Script
+## Hotkey Setup
+
+Bind a Hyprland key on your hyprland config file to toggle the local endpoint:
+
+```conf
+bind = Super, E, exec, curl -X POST http://127.0.0.1:8764/toggle
+```
+
+## Start on Hyprland Launch
 
 If you want to start Whispefy directly from Hyprland without a systemd service, use the bundled launcher:
 
 ```conf
-exec-once = /<PATH>/whispefy/start.sh
+exec-once = sh -c '/<PATH>/whispefy/scripts/start.sh >> /tmp/whispefy.log 2>&1'
 ```
 
-The script is just a thin wrapper around `uv run whispefy`.
+The start script is just a thin wrapper around `uv run whispefy`.
 
-## Start On Login
+
+## Start as Systemd Service
 
 The recommended setup is a `systemd --user` service. It keeps Whispefy running in the background and is easier to restart or inspect than a compositor-only launch.
 
@@ -101,34 +109,6 @@ Use the bundled checker before first run:
 
 It checks the shell tools, the Python modules, and prints install hints for common Hyprland-capable distros.
 
-## Hotkey Example
-
-Bind a Hyprland key to toggle the local endpoint:
-
-```conf
-bind = CTRL, SPACE, exec, curl -s -X POST http://127.0.0.1:8764/toggle
-```
-
-## Configuration
-
-Environment variables live in `.env`.
-
-- `GROQ_API_KEY`: Groq API key
-- `HTTP_PORT`: local HTTP port, default `8764`
-- `SAMPLE_RATE`: mic sample rate, default `16000`
-- `FRAME_MS`: audio frame length, default `20`
-- `SILENCE_MS`: silence cutoff, default `1200`
-  - Increase this if the app stops too quickly on short pauses.
-  - Example: `SILENCE_MS=1500` waits longer before ending recording.
-- `TRANSCRIPTION_MODEL`: Groq transcription model, default `whisper-large-v3-turbo`
-- `TRANSCRIPTION_BASE_URL`: Groq API base URL for transcription, default `https://api.groq.com/openai/v1`
-- `TRANSCRIPTION_TIMEOUT_SECONDS`: transcription request timeout, default `60.0`
-- `TRANSCRIPTION_NAME`: label used in logs and notifications, default `groq-whisper-stt`
-- `LLM_MODEL`: Groq chat model, default `llama-3.1-8b-instant`
-- `LANGUAGE`: transcription language, default `en`
-- `LLM_TEMPERATURE`: cleanup model temperature, default `0.0`
-- `NOTIFICATION_DURATION_MS`: notification lifetime, default `1600`
-
 ## Notes
 
 - Clipboard insertion uses `wl-copy`.
@@ -136,20 +116,7 @@ Environment variables live in `.env`.
 - Notifications use `notify-send`.
 - Silence detection uses an adaptive RMS threshold, not WebRTC VAD.
 - The app is targeted at Python 3.13.
-
-## Development
-
-Run tests:
-
-```bash
-uv run python -m unittest discover -s tests -v
-```
-
-Check formatting/syntax:
-
-```bash
-python3 -m compileall whispefy tests
-```
+- You can inspect logs using cat /tmp/whispefy.log
 
 ## License
 

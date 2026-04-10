@@ -80,7 +80,7 @@ class WhispefyApp:
             if self._active:
                 return
             self._active = True
-        notify("Whispefy: listening...", self.config.notification_duration_ms)
+
         self._worker = threading.Thread(target=self._run_session, daemon=True)
         self._worker.start()
 
@@ -90,6 +90,7 @@ class WhispefyApp:
 
     def _run_session(self) -> None:
         try:
+            notify("Whispefy Listening...")
             wav_path = self.recorder.record()
 
             transcript = self.pipeline.transcribe(wav_path).strip()
@@ -100,7 +101,7 @@ class WhispefyApp:
 
             self.inserter.insert(cleaned or transcript)
 
-        except Exception:
+        except Exception as err:
             logger.exception("Whispefy session failed")
             notify("Whispefy: session failed",
                    self.config.notification_duration_ms, urgency="critical")

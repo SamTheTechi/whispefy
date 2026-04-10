@@ -58,7 +58,8 @@ class AppConfig:
             frame_ms=_env_int("FRAME_MS", 20),
             silence_ms=_env_int("SILENCE_MS", 900),
             transcription=TranscriptionConfig(
-                model=_env_str("TRANSCRIPTION_MODEL", "whisper-large-v3-turbo"),
+                model=_env_str("TRANSCRIPTION_MODEL",
+                               "whisper-large-v3-turbo"),
                 base_url=_env_str(
                     "TRANSCRIPTION_BASE_URL", "https://api.groq.com/openai/v1"
                 ),
@@ -70,5 +71,6 @@ class AppConfig:
             ),
             llm_model=_env_str("LLM_MODEL", "llama-3.1-8b-instant"),
             llm_temperature=_env_float("LLM_TEMPERATURE", 0.0),
-            notification_duration_ms=_env_int("NOTIFICATION_DURATION_MS", 1600),
+            notification_duration_ms=_env_int(
+                "NOTIFICATION_DURATION_MS", 1600),
         )

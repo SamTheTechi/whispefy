@@ -94,26 +94,31 @@ class VoiceRecorder:
                 level = self._frame_rms(chunk)
                 if not speech_seen:
                     noise_floor = level if noise_floor == 0.0 else noise_floor * 0.9 + level * 0.1
-                    speech_threshold = max(min_rms, noise_floor * speech_threshold_ratio)
+                    speech_threshold = max(
+                        min_rms, noise_floor * speech_threshold_ratio)
                     if level >= speech_threshold:
                         speech_seen = True
-                        print(f"[Whispefy] speech detected (rms={level:.1f})", flush=True)
+                        print(f"[Whispefy] speech detected (rms={
+                              level:.1f})", flush=True)
                         silence_run = 0
                     elif len(audio_frames) >= initial_silence_limit:
                         print("[Whispefy] no speech detected, stopping", flush=True)
                         break
                 else:
                     noise_floor = noise_floor * 0.98 + level * 0.02
-                    silence_threshold = max(min_rms, noise_floor * silence_threshold_ratio)
+                    silence_threshold = max(
+                        min_rms, noise_floor * silence_threshold_ratio)
                     if level <= silence_threshold:
                         silence_run += 1
                         print(
-                            f"[Whispefy] silence frame {silence_run}/{silence_frames} (rms={level:.1f})",
+                            f"[Whispefy] silence frame {
+                                silence_run}/{silence_frames} (rms={level:.1f})",
                             flush=True,
                         )
                     else:
                         silence_run = 0
-                        print(f"[Whispefy] speech continues (rms={level:.1f})", flush=True)
+                        print(f"[Whispefy] speech continues (rms={
+                              level:.1f})", flush=True)
 
                     if silence_run >= silence_frames:
                         print("[Whispefy] silence detected, stopping", flush=True)
@@ -132,7 +137,8 @@ class VoiceRecorder:
         import tempfile
 
         audio = b"".join(frames)
-        wav_path = Path(tempfile.NamedTemporaryFile(suffix=".wav", delete=False).name)
+        wav_path = Path(tempfile.NamedTemporaryFile(
+            suffix=".wav", delete=False).name)
         with wave.open(str(wav_path), "wb") as wav_file:
             wav_file.setnchannels(1)
             wav_file.setsampwidth(2)
