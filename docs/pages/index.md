@@ -84,21 +84,21 @@ Use this as a local desktop tool, not a cloud editor. The app keeps the control 
 <div class="whispefy-split">
 <div class="whispefy-panel">
 
-### Input
+<strong>Input</strong>
 
 Hotkey or HTTP starts a session.
 
 </div>
 <div class="whispefy-panel">
 
-### Silence
+<strong>Silence</strong>
 
 The recorder stops when speech drops off.
 
 </div>
 <div class="whispefy-panel">
 
-### Output
+<strong>Output</strong>
 
 The cleaned text goes straight to the cursor.
 

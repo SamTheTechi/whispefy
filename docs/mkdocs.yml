@@ -2,7 +2,7 @@ site_name: Whispefy
 site_description: Linux voice dictation for Hyprland with Groq and LangChain
 repo_name: Whispefy
 repo_url: https://github.com/SamTheTechi/whispefy
-docs_dir: .
+docs_dir: pages
 site_dir: ../site
 
 theme:
