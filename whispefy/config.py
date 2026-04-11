@@ -53,7 +53,7 @@ class AppConfig:
         load_dotenv()
         return cls(
             groq_api_key=_env_str("GROQ_API_KEY", "") or None,
-            http_port=_env_int("HTTP_PORT", 8765),
+            http_port=_env_int("HTTP_PORT", 8764),
             sample_rate=_env_int("SAMPLE_RATE", 16000),
             frame_ms=_env_int("FRAME_MS", 20),
             silence_ms=_env_int("SILENCE_MS", 900),

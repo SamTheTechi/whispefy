@@ -1,5 +1,7 @@
 site_name: Whispefy
 site_description: Linux voice dictation for Hyprland with Groq and LangChain
+repo_name: Whispefy
+repo_url: https://github.com/SamTheTechi/whispefy
 docs_dir: .
 site_dir: ../site
 
@@ -8,25 +10,28 @@ theme:
   logo: assets/logo.svg
   favicon: assets/logo.svg
   font:
-    text: Inter
+    text: Nunito
     code: JetBrains Mono
   features:
+    - navigation.instant
     - navigation.tabs
     - navigation.sections
     - navigation.top
+    - toc.follow
+    - search.suggest
+    - search.highlight
     - content.code.copy
-    - content.action.view
   palette:
     - scheme: default
-      primary: black
-      accent: teal
+      primary: custom
+      accent: custom
 
 extra_css:
   - stylesheets/extra.css
 
 nav:
   - Home: index.md
-  - Getting Started: getting-started.md
+  - Installation: getting-started.md
   - Architecture: architecture.md
 
 plugins:

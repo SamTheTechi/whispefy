@@ -23,7 +23,7 @@ It works like a Whisperflow-style flow:
 ## Install
 
 ```bash
-git clone https://github.com/SamTheTechi/whispefy.git
+git clone -b master https://github.com/SamTheTechi/whispefy.git
 cd whispefy
 uv sync
 cp example.env .env
