@@ -9,6 +9,10 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
+class NoSpeechDetected(RuntimeError):
+    pass
+
+
 def frame_samples(sample_rate: int, frame_ms: int) -> int:
     return max(1, int(sample_rate * frame_ms / 1000))
 
@@ -67,8 +71,6 @@ class VoiceRecorder:
         min_rms = 250.0
         initial_silence_limit = max(1, silence_frames)
 
-        print("[Whispefy] recording started", flush=True)
-
         def callback(indata, _frames, _time, status):
             if status:
                 logger.warning("Audio status: %s", status)
@@ -98,11 +100,8 @@ class VoiceRecorder:
                         min_rms, noise_floor * speech_threshold_ratio)
                     if level >= speech_threshold:
                         speech_seen = True
-                        print(f"[Whispefy] speech detected (rms={
-                              level:.1f})", flush=True)
                         silence_run = 0
                     elif len(audio_frames) >= initial_silence_limit:
-                        print("[Whispefy] no speech detected, stopping", flush=True)
                         break
                 else:
                     noise_floor = noise_floor * 0.98 + level * 0.02
@@ -110,18 +109,10 @@ class VoiceRecorder:
                         min_rms, noise_floor * silence_threshold_ratio)
                     if level <= silence_threshold:
                         silence_run += 1
-                        print(
-                            f"[Whispefy] silence frame {
-                                silence_run}/{silence_frames} (rms={level:.1f})",
-                            flush=True,
-                        )
                     else:
                         silence_run = 0
-                        print(f"[Whispefy] speech continues (rms={
-                              level:.1f})", flush=True)
 
                     if silence_run >= silence_frames:
-                        print("[Whispefy] silence detected, stopping", flush=True)
                         break
 
         self._stop_event.clear()
@@ -129,7 +120,7 @@ class VoiceRecorder:
         if not audio_frames:
             raise RuntimeError("No audio captured")
         if not speech_seen:
-            raise RuntimeError("No speech detected")
+            raise NoSpeechDetected("No speech detected")
 
         return self._write_wav(audio_frames)
 

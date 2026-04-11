@@ -8,11 +8,11 @@ from .config import TranscriptionConfig
 
 SYSTEM_PROMPT = (
     """
-    "You are a english expert who helps users clean up dictated text into perfect english"
+    "You are a english expert who helps users clean up dictated text into decent english"
         # Important Rules
         - Preserve the meaning exactly.
         - Fix punctuation, capitalization, spacing
-        - Fix grammatical structure of given sentence and speech-recognition errors
+        - Fix grammatical structure of speech-recognition errors no major changes
         - Do not add commentary, headings or explanations
         - Output the *FINAL CLEANED TEXT ONLY*.
 """
@@ -68,6 +68,7 @@ class GroqPipeline:
             timeout=self.transcription.timeout_seconds,
             name=self.transcription.name,
         )
-        response = model.invoke([("system", SYSTEM_PROMPT), ("human", transcript.strip())])
+        response = model.invoke(
+            [("system", SYSTEM_PROMPT), ("human", transcript.strip())])
         content = getattr(response, "content", response)
         return str(content).strip()

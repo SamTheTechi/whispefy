@@ -9,14 +9,14 @@ if __package__ in (None, ""):
     import sys
 
     sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent))
-    from whispefy.audio import VoiceRecorder
+    from whispefy.audio import NoSpeechDetected, VoiceRecorder
     from whispefy.config import AppConfig
     from whispefy.groq_pipeline import GroqPipeline
     from whispefy.insertion import WaylandInserter
     from whispefy.notifications import notify
     from whispefy.server import build_server
 else:
-    from .audio import VoiceRecorder
+    from .audio import NoSpeechDetected, VoiceRecorder
     from .config import AppConfig
     from .groq_pipeline import GroqPipeline
     from .insertion import WaylandInserter
@@ -100,7 +100,10 @@ class WhispefyApp:
             cleaned = self.pipeline.clean_transcript(transcript).strip()
 
             self.inserter.insert(cleaned or transcript)
+            self.inserter.copy_to_clipboard(cleaned or transcript)
 
+        except NoSpeechDetected:
+            print("[Whispefy] session cancelled: no speech detected", flush=True)
         except Exception as err:
             logger.exception("Whispefy session failed")
             notify("Whispefy: session failed",
