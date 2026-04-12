@@ -4,13 +4,19 @@ import logging
 import queue
 import threading
 import wave
+from dataclasses import dataclass
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 
-class NoSpeechDetected(RuntimeError):
-    pass
+@dataclass(slots=True)
+class RecordedAudio:
+    wav_path: Path
+    duration_seconds: float
+    voiced_seconds: float
+    peak_rms: float
+    noise_floor: float
 
 
 def frame_samples(sample_rate: int, frame_ms: int) -> int:
@@ -56,7 +62,7 @@ class VoiceRecorder:
         samples = np.frombuffer(chunk, dtype=np.int16)
         return rms_level(samples)
 
-    def record(self) -> Path:
+    def record(self) -> RecordedAudio:
         import sounddevice as sd
 
         frame_size = frame_samples(self.sample_rate, self.frame_ms)
@@ -64,12 +70,13 @@ class VoiceRecorder:
         audio_frames: list[bytes] = []
         silence_run = 0
         speech_seen = False
+        voiced_frames = 0
+        peak_rms = 0.0
         noise_floor = 0.0
+        speech_floor = 0.0
         frames: queue.Queue[bytes] = queue.Queue()
-        speech_threshold_ratio = 2.5
-        silence_threshold_ratio = 1.4
-        min_rms = 250.0
-        initial_silence_limit = max(1, silence_frames)
+        speech_threshold_ratio = 1.4
+        silence_threshold_ratio = 1.15
 
         def callback(indata, _frames, _time, status):
             if status:
@@ -96,17 +103,16 @@ class VoiceRecorder:
                 level = self._frame_rms(chunk)
                 if not speech_seen:
                     noise_floor = level if noise_floor == 0.0 else noise_floor * 0.9 + level * 0.1
-                    speech_threshold = max(
-                        min_rms, noise_floor * speech_threshold_ratio)
+                    speech_threshold = noise_floor * speech_threshold_ratio
                     if level >= speech_threshold:
                         speech_seen = True
+                        speech_floor = noise_floor
                         silence_run = 0
-                    elif len(audio_frames) >= initial_silence_limit:
-                        break
                 else:
+                    voiced_frames += 1
+                    peak_rms = max(peak_rms, level)
                     noise_floor = noise_floor * 0.98 + level * 0.02
-                    silence_threshold = max(
-                        min_rms, noise_floor * silence_threshold_ratio)
+                    silence_threshold = noise_floor * silence_threshold_ratio
                     if level <= silence_threshold:
                         silence_run += 1
                     else:
@@ -119,10 +125,16 @@ class VoiceRecorder:
 
         if not audio_frames:
             raise RuntimeError("No audio captured")
-        if not speech_seen:
-            raise NoSpeechDetected("No speech detected")
-
-        return self._write_wav(audio_frames)
+        wav_path = self._write_wav(audio_frames)
+        duration_seconds = len(audio_frames) * self.frame_ms / 1000.0
+        voiced_seconds = voiced_frames * self.frame_ms / 1000.0
+        return RecordedAudio(
+            wav_path=wav_path,
+            duration_seconds=duration_seconds,
+            voiced_seconds=voiced_seconds,
+            peak_rms=peak_rms,
+            noise_floor=speech_floor or noise_floor,
+        )
 
     def _write_wav(self, frames: list[bytes]) -> Path:
         import tempfile

@@ -9,14 +9,14 @@ if __package__ in (None, ""):
     import sys
 
     sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent))
-    from whispefy.audio import NoSpeechDetected, VoiceRecorder
+    from whispefy.audio import VoiceRecorder
     from whispefy.config import AppConfig
     from whispefy.groq_pipeline import GroqPipeline
     from whispefy.insertion import WaylandInserter
     from whispefy.notifications import notify
     from whispefy.server import build_server
 else:
-    from .audio import NoSpeechDetected, VoiceRecorder
+    from .audio import VoiceRecorder
     from .config import AppConfig
     from .groq_pipeline import GroqPipeline
     from .insertion import WaylandInserter
@@ -91,9 +91,15 @@ class WhispefyApp:
     def _run_session(self) -> None:
         try:
             notify("Whispefy Listening...")
-            wav_path = self.recorder.record()
+            recording = self.recorder.record()
+            if not self.pipeline.should_send_to_whisper(recording):
+                print(
+                    "[Whispefy] session cancelled: audio too short or too quiet",
+                    flush=True,
+                )
+                return
 
-            transcript = self.pipeline.transcribe(wav_path).strip()
+            transcript = self.pipeline.transcribe(recording.wav_path).strip()
             if not transcript:
                 raise RuntimeError("Groq returned an empty transcript")
 
@@ -102,8 +108,6 @@ class WhispefyApp:
             self.inserter.insert(cleaned or transcript)
             self.inserter.copy_to_clipboard(cleaned or transcript)
 
-        except NoSpeechDetected:
-            print("[Whispefy] session cancelled: no speech detected", flush=True)
         except Exception as err:
             logger.exception("Whispefy session failed")
             notify("Whispefy: session failed",
@@ -127,6 +131,11 @@ def main() -> None:
     )
     config = AppConfig.from_env()
     app = WhispefyApp(config)
+    try:
+        print("[Whispefy] warming embedding model...", flush=True)
+        app.pipeline.warmup_embedding_model()
+    except Exception as exc:
+        logger.warning("Embedding model warmup failed: %s", exc)
     try:
         app.start_background_server()
     except RuntimeError as exc:

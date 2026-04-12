@@ -18,6 +18,10 @@ Useful defaults to review:
 - `SILENCE_MS=900` or higher if you pause between words
 - `LLM_MODEL=llama-3.1-8b-instant`
 
+On the first start, Whispefy also warms up its local embedding model
+(`BAAI/bge-small-en-v1.5`) so the first cleanup check does not stall on a
+download.
+
 ## Run
 
 ### Quick Run

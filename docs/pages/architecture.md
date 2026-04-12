@@ -4,6 +4,9 @@ Whispefy is a small pipeline with one control loop:
 
 `trigger -> record -> silence stop -> transcribe -> clean -> insert`
 
+The cleanup path warms up its local embedding model at startup so the first
+real session does not pay the download cost.
+
 ## Core Pieces
 
 <div class="whispefy-grid">
@@ -18,10 +21,30 @@ Whispefy is a small pipeline with one control loop:
 </div>
 <div class="whispefy-card">
 
-<b>Processing</b><br>
+<b>Guardrails</b><br>
 
 <p>
-<a href="https://github.com/SamTheTechi/whispefy/blob/master/whispefy/groq_pipeline.py">whispefy/groq_pipeline.py</a> sends the WAV file to Groq Whisper and then runs a small LangChain cleanup pass with <code>ChatGroq</code>.
+The app checks the recorded clip before transcription. If it is too short or too quiet, it skips Whisper and ends the session early.
+</p>
+
+</div>
+<div class="whispefy-card">
+
+<b>Transcribe</b><br>
+
+<p>
+<a href="https://github.com/SamTheTechi/whispefy/blob/master/whispefy/groq_pipeline.py">whispefy/groq_pipeline.py</a> sends the WAV file to Groq Whisper and returns plain transcript text.
+</p>
+
+</div>
+<div class="whispefy-card">
+
+<b>Clean</b><br>
+
+<p>
+The pipeline cleans the text with <code>ChatGroq</code>.
+Then it compares the new text with the old text using local embeddings.
+If the new text looks too different, Whispefy keeps the original.
 </p>
 
 </div>
@@ -41,10 +64,37 @@ Whispefy is a small pipeline with one control loop:
 <p>
 <a href="https://github.com/SamTheTechi/whispefy/blob/master/whispefy/app.py">whispefy/app.py</a> owns the session state, while
 <a href="https://github.com/SamTheTechi/whispefy/blob/master/whispefy/server.py">whispefy/server.py</a> exposes the local FastAPI trigger endpoints.
+The app also preloads the embedding model during startup.
 </p>
 
 </div>
 </div>
+
+## Guardrails
+
+Whispefy has two simple checks.
+
+1. Before Whisper, the clip must be long enough and loud enough.
+2. Before cleanup, the text must be worth cleaning.
+3. After cleanup, the new text must stay close to the old text.
+
+The pre-Whisper gate is plain:
+
+- minimum duration: `1.0s`
+- minimum voiced content: `0.25s`
+- minimum peak level: `max(40.0, noise_floor * 1.2)`
+
+If a clip fails those checks, Whispefy skips Whisper and calls it too short or
+too quiet.
+
+The cleanup text filter is simple too. If the transcript is empty, too short,
+or looks like junk, Whispefy keeps it as-is and skips the cleanup model.
+
+The cleanup gate uses local embeddings from `BAAI/bge-small-en-v1.5`.
+Whispefy compares the old text with the new text and checks cosine similarity.
+The cutoff is `0.8`.
+
+If the score is below `0.8`, Whispefy keeps the original text.
 
 ## Config
 
@@ -68,19 +118,6 @@ The FastAPI server lives in [`whispefy/server.py`](https://github.com/SamTheTech
 
 Use `HTTP_PORT` if you need to change the local port. The default is `8764`.
 
-## Session Behavior
-
-The app does not keep a long-running audio stream open forever.
-It starts recording on `POST /toggle` or the Hyprland bind, then:
-
-1. buffers frames locally
-2. watches for speech
-3. stops on silence
-4. skips transcription if no speech was detected
-5. logs and inserts only after the full pipeline succeeds
-
-Expected no-speech cases are treated as a normal cancel path, not a crash.
-
 ## Launch Paths
 
 There are three practical ways to run it:
@@ -95,11 +132,29 @@ Whispefy is designed for Hyprland on Wayland.
 The insertion path relies on `wtype`, and clipboard fallback relies on `wl-copy`.
 If those tools are missing, text insertion will fail even if transcription succeeds.
 
+## Session Behavior
+
+Whispefy does not keep mic open forever.
+It starts on `POST /toggle` or the Hyprland bind.
+
+Then it does this:
+
+1. take audio frames
+2. watch for speech
+3. stop when silence comes
+4. skip Whisper if the clip is too short or too quiet
+5. clean the text
+6. check if the new text looks too far from the old text
+7. only insert if the whole thing looks good
+
+The first check saves Groq calls.
+The second check stops bad cleanup from going through.
+
 ## Failure Modes
 
 These are the main failure points to know about when debugging:
 
-- `No speech detected` is a normal cancel path from [`whispefy/audio.py`](https://github.com/SamTheTechi/whispefy/blob/master/whispefy/audio.py), not a crash.
+- A too-short or too-quiet clip is filtered before Whisper by the pre-Whisper gate.
 - A wrong `TRANSCRIPTION_BASE_URL` will break Groq chat calls if it does not resolve to the OpenAI-compatible base.
 - Missing `wtype` or `wl-copy` will break insertion, even if transcription succeeds.
 - `systemd --user` launches need the Wayland env imported, or the service may start without access to the desktop session.
