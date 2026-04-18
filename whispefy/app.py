@@ -106,7 +106,6 @@ class WhispefyApp:
             cleaned = self.pipeline.clean_transcript(transcript).strip()
 
             self.inserter.insert(cleaned or transcript)
-            self.inserter.copy_to_clipboard(cleaned or transcript)
 
         except Exception as err:
             logger.exception("Whispefy session failed")
